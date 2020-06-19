@@ -1,0 +1,66 @@
+{
+    "pump_all_morning":
+    {
+        "is_active":true,
+        "description":"Pumps at 11am for 10 seconds with the big pump, then 15 seconds with all four small pumps.",
+        "weekdays":[0,1,2,3,4,5,6],
+        "start_time":"11:00",
+        "plan":{
+            "turn_big_pump_on":{
+                "action":"turn_on",
+                "devices":["big_pump"],
+                "duration":10
+            },
+            "turn_small_pumps_on":{
+                "action":"turn_on",
+                "devices":["small_pump1", "small_pump2", "small_pump3", "small_pump4"],
+                "duration":15
+            }
+        }
+    },
+    "pump_all_evening":
+    {
+        "is_active":false,
+        "description":"Pumps at 8pm for 10 seconds with the big pump, then 15 seconds with all four small pumps.",
+        "weekdays":[0,1,2,3,4,5,6],
+        "start_time":"20:00",
+        "plan":{
+            "turn_big_pump_on":{
+                "action":"turn_on",
+                "devices":["big_pump"],
+                "duration":10
+            },
+            "turn_small_pumps_on":{
+                "action":"turn_on",
+                "devices":["small_pump1", "small_pump2", "small_pump3", "small_pump4"],
+                "duration":15
+            }
+        }
+    },
+    "light_on":
+    {
+        "is_active":true,
+        "description":"Turns light on at 8am local time.",
+        "weekdays":[0,1,2,3,4,5,6],
+        "start_time":"08:00",
+        "plan":{
+            "turn_light_on":{
+                "action":"turn_on",
+                "devices":["light"]
+            }
+        }
+    },
+    "light_off":
+    {
+        "is_active":true,
+        "description":"Turns light off at 10pm local time.",
+        "weekdays":[0,1,2,3,4,5,6],
+        "start_time":"22:00",
+        "plan":{
+            "turn_light_on":{
+                "action":"turn_off",
+                "devices":["light"]
+            }
+        }
+    }
+}
