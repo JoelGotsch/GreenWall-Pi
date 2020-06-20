@@ -20,7 +20,7 @@ class device:
         self.min_pause = min_pause
         self.logger = logger
         try:
-            with open("last_turned_on.json") as file_settings:
+            with open("settings/last_turned_on.json") as file_settings:
                 last_turned_on = dict(json.load(file_settings))
         except FileNotFoundError:
             last_turned_on = dict()
@@ -43,10 +43,10 @@ class device:
         self.last_date_turned_on = datetime.datetime.today()
         self.logger.debug(self.name + ": turned on")
         # write to last_turned_on
-        with open("last_turned_on.json") as file_settings:
+        with open("settings/last_turned_on.json") as file_settings:
             last_turned_on = dict(json.load(file_settings))
         last_turned_on[name] = str(datetime.datetime.today())
-        with open('last_turned_on.json', 'w') as outfile:
+        with open('settings/last_turned_on.json', 'w') as outfile:
             json.dump(last_turned_on, outfile)
         return(1)
         #send info to blynk (via thread!)
@@ -62,7 +62,7 @@ class device:
     def get_target_value(self):
         """Returns the state in which the device should be at the current time, derived from last set value in plans.json for device with this name.
         Returns None if Dive is not described in plans.json"""
-        with open("plans.json") as file_plans:
+        with open("settings/plans.json") as file_plans:
             plans_dict = OrderedDict(json.load(file_plans))
         # (1)filter for actions for that device, save plan
         # (2)calculate last time action should have been set for each action and save latest of possible times
@@ -141,7 +141,7 @@ class greenwall:
             logger.setLevel(logging.INFO)
         self.logger=logger
         # read device list from gpio_settings.json:
-        with open("gpio_settings.json") as file_settings:
+        with open("settings/gpio_settings.json") as file_settings:
             gpio_settings = dict(json.load(file_settings))
         for k in gpio_settings.keys():
             curr_device = gpio_settings[k]

@@ -71,7 +71,7 @@ class task_manager:
         # in the list is the next one to do. The last task is creating the task_list again (for the next 12h).
         plan_time_start = datetime.datetime.today()
         plan_time_end = plan_time_start + datetime.timedelta(hours=12.0)
-        with open("plans.json") as file_plans:
+        with open("settings/plans.json") as file_plans:
             plans_dict = OrderedDict(json.load(file_plans))
 
         for plan in plans_dict:
