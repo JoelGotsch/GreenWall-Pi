@@ -1,11 +1,16 @@
 import logging
 import sys
-from threading import Timer
+import threading
 import datetime
 import json
 import time
 from collections import OrderedDict
-from misc import get_duration, next_date_wday
+
+
+try:
+    from src.misc import get_duration, next_date_wday
+except ModuleNotFoundError:
+    from misc import get_duration, next_date_wday
 
 
 class task:
@@ -33,7 +38,7 @@ class task:
         delta_t = (self.exec_time-datetime.datetime.today()).total_seconds()
         self.logger.debug("Running Job '" + self.name + "' in " +
                           str(delta_t) + " seconds, that is at " + str(self.exec_time))
-        Timer(delta_t, self.func).start()
+        threading.Timer(delta_t, self.func).start()
 
 
 class task_manager:
@@ -44,19 +49,15 @@ class task_manager:
         # initialize task_list by parsing plans.json and run it.
         self.task_list = []
         if logger is None:
-            logging.basicConfig(filename='logs/task_manager.log', level=logging.DEBUG,
+            logging.basicConfig(filename='logs/task_manager.log', level=logging.INFO,
                                 format='[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
             logger = logging.getLogger('task_manager')
             ch = logging.StreamHandler(sys.stdout)
-            ch.setLevel(logging.INFO)
-
-            formatter = logging.Formatter('')
-            ch.setFormatter(formatter)
             logger.addHandler(ch)
-            logger.setLevel(logging.INFO)
         self.logger = logger
         self.green_wall = green_wall
         self.create_task_list()
+        self.logger.debug("Task Manager initialized")
 
     def create_task_list(self):
         # updates the task-list for the next 12h including an update at the end of the cycle for itself.
@@ -67,7 +68,8 @@ class task_manager:
         with open("settings/plans.json") as file_plans:
             plans_dict = OrderedDict(json.load(file_plans))
 
-        for plan in plans_dict:
+        for plan_k in plans_dict:
+            plan = plans_dict[plan_k]
             if not plan['is_active']:
                 continue
             # check if one of weekday + time combinations is between plan_time_start and plan_time_end
@@ -75,7 +77,7 @@ class task_manager:
             possible_times = [next_date_wday(wday)+datetime.timedelta(
                 hours=float(hours), minutes=float(minutes)) for wday in plan['weekdays']]
             # necessary if action is running currently
-            duration_adjustment = sum([get_duration(action)
+            duration_adjustment = sum([get_duration(plan["actions"][action])
                                        for action in plan["actions"]])
             # if it should, it may re-run the commands which ran before already, e.g. the big pump may run a 2nd time
             plan_times = [possible_time for possible_time in possible_times if plan_time_start +
@@ -93,7 +95,7 @@ class task_manager:
                         elif action["task"] == "turn_off":
                             task1 = dev.turn_off
                             task2 = dev.turn_on
-                        elif:
+                        else:
                             self.logger.exception(
                                 "The specified action '" + str(action["task"])+"' is not implemented.")
                         self.add_task(
@@ -106,12 +108,14 @@ class task_manager:
                             datetime.timedelta(seconds=action["duration"])
         self.add_task(task(exec_time=plan_time_end, func=self.create_task_list,
                            name="Update Task List", logger=self.logger))
+        self.logger.debug("Finished creating task-list")
+        self.logger.debug("There are " + str(threading.active_count()) + " threads active.")
 
     def run(self):
         # search for task wich should be executed next, wrap it's function and execute
-        next_task = self.task_list.pop(0)
-        next_task.func = self.wrap_task(next_task.func)
-        next_task.run()
+        while len(self.task_list) > 0:
+            next_task = self.task_list.pop(0)
+            next_task.run()
 
     def add_task(self, task):
         # add task to task_list with appropriate position (according to exec_time)
@@ -120,17 +124,6 @@ class task_manager:
         if len(self.task_list) == 0:
             self.task_list.insert(i, task)
             return()
-        while task.exec_time > self.task_list[i].exec_time:
+        while i < len(self.task_list) and task.exec_time > self.task_list[i].exec_time:
             i += 1
         self.task_list.insert(i, task)
-
-    def wrap_task(self, func):
-
-        def return_func(func):
-
-            # start function
-            func()
-            # run next task from task list
-            self.run()
-
-        return(return_func(func))
