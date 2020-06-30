@@ -1,4 +1,16 @@
 {
     "AUTH_TOKEN":"Q41UqQj0NmOozGVDPZ1gxJTfzlqatFev",
-    "AUTH_TOKEN_old":"EHDz5GvYOJS9nqQi49thJYx8F-f8hfGa"
+    "AUTH_TOKEN_old":"EHDz5GvYOJS9nqQi49thJYx8F-f8hfGa",
+    "logger":
+    {
+        "name":"blynk_logger",
+        "log-level":"INFO",
+        "vpin":8
+    },
+    "plan_viewer":
+    {
+        "name":"blynk_plan_viewer",
+        "vpins":[9,10,11],
+        "description":"The next plans are sent to given vpins. E.g. if vpins=[9,10,11] then '2020-06-25 20:00 pump_all_evening' is sent to vpin 9, '2020-06-25 22:00 turn_light_off' is sent to vpin 10 and so on."
+    }
 }

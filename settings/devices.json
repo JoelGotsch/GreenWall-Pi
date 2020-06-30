@@ -44,11 +44,17 @@
             "min_pause":60
         }
     },
-    "camera": 
+    "cameras": 
     {
-        "name":"camera",
-        "gpio_pin":"cam",
-        "vpin":7,
-        "min_pause":0
+        "cam_1":
+        {
+            "name":"camera_1",
+            "gpio_pin":"USB",
+            "vpin":7,
+            "repeat_sec":20,
+            "res":"1280x720",
+            "usb_port":0
+        }
+        
     }
 }

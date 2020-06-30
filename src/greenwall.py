@@ -12,10 +12,12 @@ try:
     from src.misc import calc_last_runtime
     from src.blynklib import Blynk
     from src.taskmanager import task_manager, task
+    from src.cam import camera
 except ModuleNotFoundError:
     from misc import calc_last_runtime
     from blynklib import Blynk
     from taskmanager import task_manager, task
+    from cam import camera
 
 
 class device:
@@ -52,7 +54,7 @@ class device:
         self.logger.info("Initialized device " + name)
     
     def addTm(self, tm):
-        self.tm = tm
+        self.tm = weakref.ref(tm)
     
     def addBlynk(self, blynk):
         self.blynk=weakref.ref(blynk)
@@ -74,7 +76,7 @@ class device:
             self.blynk().virtual_write(virt_pin, val)
         task_name="Write " + str(val) + " to vpin " + str(virt_pin)
         if self.tm is not None:
-            self.tm.add_task(task(exec_time=datetime.datetime.today(), func=wrap_f,
+            self.tm().add_task(task(func=wrap_f, exec_time=datetime.datetime.today(),
                            name=task_name, logger=self.logger))
         else:
             th = threading.Thread(target=wrap_f,name=task_name)
@@ -111,6 +113,7 @@ class device:
             json.dump(last_turned_on, outfile)
         # send info to blynk (via thread!)
         self.WriteToBlynk()
+        self.logger.info("Turned on device '" + self.name)
         return(1)
         
 
@@ -118,6 +121,7 @@ class device:
         self.gpio_obj.off()
         self.logger.debug(self.name + ": turned off")
         self.WriteToBlynk()
+        self.logger.info("Turned off device '" + self.name)
         # send info to blynk
 
     def getValue(self):
@@ -201,16 +205,6 @@ class device:
         return(value)
 
 
-class camera:
-    """We will also need a little https server for the blynk app to load the pictures.."""
-
-    def __init__(self, *args, **kwargs):
-        self.camera = 1  # TODO
-
-    def take_picture(self, filename=""):
-        # save as png
-        pass
-
 
 class greenwall:
     """ Contains all the appliances on the wall such as the pumps, the light and the camera """
@@ -218,7 +212,8 @@ class greenwall:
     def __init__(self, name, platform, blynk="", logger=None, *args, **kwargs):
         self.name = name
         self.platform = platform  # Raspberry or Onion
-        self.devices = []
+        self.gpio_devices = []
+        self.camera_devices = []
         self.tm = None
         self.blynk = None
         # self.blynk=blynk
@@ -236,10 +231,10 @@ class greenwall:
             gpio_settings = device_settings["GPIO"]
         for k in gpio_settings.keys():
             curr_device = gpio_settings[k]
-            self.devices.append(device(name=curr_device["name"], gpiopin=curr_device["gpio_pin"],
+            self.gpio_devices.append(device(name=curr_device["name"], gpiopin=curr_device["gpio_pin"],
                                        blynk_vpin=curr_device["vpin"], min_pause=curr_device["min_pause"], blynk=blynk, logger=self.logger))
         # check if all devices are in the right status; according to plans.json and send current state to blynk
-        for dev in self.devices:
+        for dev in self.gpio_devices:
             tv = dev.get_targetValue()
             if tv is not None and tv != dev.getValue():
                 self.logger.info(
@@ -248,20 +243,29 @@ class greenwall:
                     dev.turn_on()
                 else:
                     dev.turn_off()
-
+        #now initialize webcam
+        cam_settings=device_settings["cameras"]
+        for k in cam_settings.keys():
+            curr_device = cam_settings[k]
+            #blynk_vpin, repeat_sec, name, res="1280x720", usb_port=0, logger=None
+            self.camera_devices.append(camera(blynk_vpin=curr_device["vpin"], repeat_sec=curr_device["repeat_sec"],
+                                              name=curr_device["name"], res=curr_device["res"], usb_port=curr_device["usb_port"], logger=self.logger))
         self.logger.info("Initiated green wall named '" +
                          name + "' on " + platform)
 
     def get_device_name(self, name):
         """returns a device object when you ask for the name"""
-        for dev in self.devices:
+        for dev in self.gpio_devices:
             if dev.name == name:
                 return(dev)
         raise KeyError
 
     def get_device_vpin(self, vpin):
         """returns a device object when you ask for its vpin"""
-        for dev in self.devices:
+        for dev in self.gpio_devices:
+            if dev.vpin == vpin:
+                return(dev)
+        for dev in self.camera_devices:
             if dev.vpin == vpin:
                 return(dev)
         raise KeyError
@@ -275,12 +279,17 @@ class greenwall:
         """adding a task-manager by weak-ref to the green-wall and all devices so that they can schedule tasks."""
         self.logger.debug("Added Taskmanager to greenwall object.")
         self.tm = weakref.ref(tm)
-        for dev in self.devices:
+        for dev in self.gpio_devices:
             dev.addTm(tm)
+        for dev in self.camera_devices:
+            dev.addTm(tm)
+        
 
 
     def addBlynk(self, blynk):
         """adding a blynk object by weak-ref to the green-wall and all devices so that they can send infos to the app."""
         self.blynk=weakref.ref(blynk)
-        for dev in self.devices:
+        for dev in self.gpio_devices:
+            dev.addBlynk(blynk)
+        for dev in self.camera_devices:
             dev.addBlynk(blynk)

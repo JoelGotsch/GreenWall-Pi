@@ -57,3 +57,4 @@ def initializeLogger(filename='logs/app.log', log_level=logging.DEBUG, logger_na
     ch.setLevel(logging.DEBUG)
     logger.addHandler(ch)
     return(logger)
+
