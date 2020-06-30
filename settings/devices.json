@@ -4,14 +4,14 @@
         "light": 
         {
             "name":"light",
-            "gpio_pin":20,
+            "gpio_pin":14,
             "vpin":1,
             "min_pause":1
         },
         "bp": 
         {
             "name":"big_pump",
-            "gpio_pin":21,
+            "gpio_pin":15,
             "vpin":2,
             "min_pause":600
         },
@@ -51,7 +51,7 @@
             "name":"camera_1",
             "gpio_pin":"USB",
             "vpin":7,
-            "repeat_sec":20,
+            "repeat_sec":240,
             "res":"1280x720",
             "usb_port":0
         }

@@ -1,6 +1,7 @@
 
 # import picamera
 import json
+import os
 # import time
 import datetime
 from subprocess import call
@@ -49,9 +50,12 @@ class camera:
         call(["fswebcam", "-d", "/dev/video"+str(self.usb_port),
               "-r", self.res, "--no-banner", fn])
         #call(["fswebcam", "-d", "/dev/video"+str(0), "-r", "1280x720", "--no-banner", fn])
+        if not os.path.exists(fn):
+            self.logger.info("Taking picture failed "+ fn)
+            return(0)
         image_url=self._upload_picture(fn)
         self.logger.info("Took picture and uploaded. "+str(image_url))
-        self.updateLastNURLs(n=5)
+        self.updateLastNURLs(n=1)
 
         return(fn)
 
