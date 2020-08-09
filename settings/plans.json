@@ -1,10 +1,7 @@
 {
     "pump_all_morning":
     {
-        "is_active":true,
         "description":"Pumps at 11am for 10 seconds with the big pump, then 15 seconds with all four small pumps.",
-        "weekdays":[0,1,2,3,4,5,6],
-        "start_time":"11:00",
         "actions":{
             "turn_big_pump_on":{
                 "task":"turn_on",
@@ -20,10 +17,7 @@
     },
     "pump_all_evening":
     {
-        "is_active":false,
         "description":"Pumps at 8pm for 10 seconds with the big pump, then 15 seconds with all four small pumps.",
-        "weekdays":[0,1,2,3,4,5,6],
-        "start_time":"20:00",
         "actions":{
             "turn_big_pump_on":{
                 "task":"turn_on",
@@ -39,10 +33,7 @@
     },
     "light_on":
     {
-        "is_active":true,
         "description":"Turns light on at 8am local time.",
-        "weekdays":[0,1,2,3,4,5,6],
-        "start_time":"08:00",
         "actions":{
             "turn_light_on":{
                 "task":"turn_on",
@@ -52,14 +43,21 @@
     },
     "light_off":
     {
-        "is_active":true,
         "description":"Turns light off at 10pm local time.",
-        "weekdays":[0,1,2,3,4,5,6],
-        "start_time":"22:00",
         "actions":{
-            "turn_light_on":{
+            "turn_light_off":{
                 "task":"turn_off",
                 "devices":["light"]
+            }
+        }
+    },
+    "upload_new_photo":
+    {
+        "description":"takes and uploads picture of the greenwall",
+        "actions":{
+            "take_picture":{
+                "task":"take_picture",
+                "devices":["cam_1"]
             }
         }
     }

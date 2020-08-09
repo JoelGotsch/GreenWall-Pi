@@ -23,20 +23,15 @@ except ModuleNotFoundError:
 class device:
     """A class for GPIO devices which handles turning them on and off."""
 
-    def __init__(self, name, gpiopin, blynk_vpin, min_pause, logger, *args, **kwargs):
+    def __init__(self, name, gpiopin, blynk_vpin, min_pause, *args, **kwargs):
         self.name = name
         self.gpiopin = gpiopin
         self.vpin = blynk_vpin
-        self.tm = None
-        self.blynk = None
         try:
             self.gpio_obj = gpiozero.LED(gpiopin)
         except gpiozero.exc.GPIOPinInUse:
-            logger.error(
-                "A Gpio-Pin is assigned to at least two devices. Check devices.json")
             raise gpiozero.exc.GPIOPinInUse
         self.min_pause = min_pause
-        self.logger = logger
         try:
             with open("settings/last_turned_on.json") as file_settings:
                 last_turned_on = dict(json.load(file_settings))
@@ -44,6 +39,8 @@ class device:
             last_turned_on = dict()
             last_turned_on[name] = str(
                 datetime.datetime.today()+datetime.timedelta(days=-1))
+            with open('settings/last_turned_on.json', 'w') as outfile:
+                json.dump(last_turned_on, outfile)
         if name not in last_turned_on.keys():
             last_turned_on[name] = str(
                 datetime.datetime.today()+datetime.timedelta(days=-1))
@@ -51,78 +48,23 @@ class device:
                 json.dump(last_turned_on, outfile)
         self.last_date_turned_on = datetime.datetime.strptime(
             last_turned_on[name], "%Y-%m-%d %H:%M:%S.%f")
-        self.logger.info("Initialized device " + name)
-    
-    def addTm(self, tm):
-        self.tm = weakref.ref(tm)
-    
-    def addBlynk(self, blynk):
-        self.blynk=weakref.ref(blynk)
-        self.blynk().addEvent(event_name= "read v"+str(self.vpin), func=self.getValue)
-        self.blynk().addEvent(event_name= "write v"+str(self.vpin), func=self.setValue)
-        # self.blynk._events['{}{}'.format("write v", self.vpin)] = self.setValue
-        self.WriteToBlynk()
-        self.logger.debug("Initiated blynk on device " + self.name)
-
-    def WriteToBlynk(self, val=None):
-        if self.blynk is None:
-            self.logger.debug("Tried writing to Blynk before blynk was added to device " + self.name)
-            return(0)
-        if val is None:
-            val = self.getValue()
-        virt_pin = self.vpin
-        def wrap_f():
-            #more sophisticated error handling, multiple tries or checking the status on server could go here:
-            self.blynk().virtual_write(virt_pin, val)
-        task_name="Write " + str(val) + " to vpin " + str(virt_pin)
-        if self.tm is not None:
-            self.tm().add_task(task(func=wrap_f, exec_time=datetime.datetime.today(),
-                           name=task_name, logger=self.logger))
-        else:
-            th = threading.Thread(target=wrap_f,name=task_name)
-            th.start()
-        return(1)
-    
-    def setValue(self, val, *args, **kwargs):
-        if len(args) > 0:
-            # from blynk, here is the value as a string:
-            val = int(args[0][0])
-        self.logger.debug("Set value to " + str(val) + " on " + self.name + " args= " + str(args) + " kwargs= "+ str(kwargs))
-        if val == self.getValue():
-            return(1)
-        if val == 1:
-            self.turn_on()
-        else:
-            self.turn_off()
-        return(1)
 
     def turn_on(self):
         if datetime.datetime.today() <= self.last_date_turned_on + datetime.timedelta(seconds=self.min_pause):
-            self.logger.info("Tried to turn on device '" + self.name + "' before min_pause= " +
-                             str(self.min_pause) + " seconds since the last turn on event.")
-            self.WriteToBlynk()
-            return(0)
+            raise TimeoutError("Tried to turn on device '" + self.name + "' before min_pause= " +
+                               str(self.min_pause) + " seconds since the last turn on event.")
         self.gpio_obj.on()
         self.last_date_turned_on = datetime.datetime.today()
-        self.logger.debug(self.name + ": turned on")
         # write to last_turned_on
         with open("settings/last_turned_on.json") as file_settings:
             last_turned_on = dict(json.load(file_settings))
         last_turned_on[self.name] = str(datetime.datetime.today())
         with open('settings/last_turned_on.json', 'w') as outfile:
             json.dump(last_turned_on, outfile)
-        # send info to blynk (via thread!)
-        self.WriteToBlynk()
-        self.logger.info("Turned on device '" + self.name)
         return(1)
-        
 
     def turn_off(self):
         self.gpio_obj.off()
-        self.logger.debug(self.name + ": turned off")
-        self.WriteToBlynk()
-        self.logger.info("Turned off device '" + self.name)
-        # send info to blynk
 
     def getValue(self):
         return(self.gpio_obj.value)
@@ -132,14 +74,16 @@ class device:
         Returns None if Dive is not described in plans.json"""
         with open("settings/plans.json") as file_plans:
             plans_dict = OrderedDict(json.load(file_plans))
+        with open("settings/schedule.json") as file_schedule:
+            schedule_dict = OrderedDict(json.load(file_schedule))
         # (1)filter for actions for that device, save plan
         # (2)calculate last time action should have been set for each action and save latest of possible times
         # (3) step through actions of plan and check if action started/finished and if device was used.
         #  if action = turn_on, then value = 1. But if duration is given, then flip value (1-value)
         # (1); contains the whole action, (is_active, description, weekdays, start_time,..)
         filtered_plans = OrderedDict()
-        for plan in plans_dict:
-            if plans_dict[plan]["is_active"] is True and any([self.name in devices for devices in plans_dict[plan]["actions"]]):
+        for plan in schedule_dict:
+            if any([self.name in devices for devices in plans_dict[plan]["actions"]]):
                 filtered_plans[plan] = plans_dict[plan]
         # (2)
         last_plan = OrderedDict(last_time=datetime.datetime.min)
@@ -150,7 +94,7 @@ class device:
                 last_plan = filtered_plans[ac]
 
         if len(filtered_plans) == 0:
-            self.logger.debug(
+            print(
                 "All actions filtered in function get_targetValue for device " + self.name)
             return(None)
         # (3)
@@ -195,8 +139,8 @@ class device:
         elif last_action_task == "turn_off":
             value = 0
         else:
-            self.logger.exception("While checking the target value, task '" + last_action_task +
-                                  "' for device " + self.name + " was tried, which isn't defined.")
+            print("While checking the target value, task '" + last_action_task +
+                  "' for device " + self.name + " was tried, which isn't defined.")
             return(None)
         if not last_action_finished:
             value = 1-value
@@ -205,26 +149,15 @@ class device:
         return(value)
 
 
-
 class greenwall:
     """ Contains all the appliances on the wall such as the pumps, the light and the camera """
 
-    def __init__(self, name, platform, blynk="", logger=None, *args, **kwargs):
+    def __init__(self, name, platform, *args, **kwargs):
         self.name = name
         self.platform = platform  # Raspberry or Onion
         self.gpio_devices = []
         self.camera_devices = []
-        self.tm = None
-        self.blynk = None
-        # self.blynk=blynk
-        # init logger
-        if logger is None:
-            logging.basicConfig(filename='logs/green_wall.log', level=logging.INFO,
-                                format='[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
-            logger = logging.getLogger('green_wall')
-            ch = logging.StreamHandler(sys.stdout)
-            logger.addHandler(ch)
-        self.logger = logger
+
         # read device list from devices.json:
         with open("settings/devices.json") as file_settings:
             device_settings = dict(json.load(file_settings))
@@ -232,26 +165,22 @@ class greenwall:
         for k in gpio_settings.keys():
             curr_device = gpio_settings[k]
             self.gpio_devices.append(device(name=curr_device["name"], gpiopin=curr_device["gpio_pin"],
-                                       blynk_vpin=curr_device["vpin"], min_pause=curr_device["min_pause"], blynk=blynk, logger=self.logger))
+                                            blynk_vpin=curr_device["vpin"], min_pause=curr_device["min_pause"]))
         # check if all devices are in the right status; according to plans.json and send current state to blynk
         for dev in self.gpio_devices:
             tv = dev.get_targetValue()
             if tv is not None and tv != dev.getValue():
-                self.logger.info(
-                    "Device '" + dev.name + "' was in the wrong state and value is now set to " + str(tv))
                 if tv == 1:
                     dev.turn_on()
                 else:
                     dev.turn_off()
         #now initialize webcam
-        cam_settings=device_settings["cameras"]
+        cam_settings = device_settings["cameras"]
         for k in cam_settings.keys():
             curr_device = cam_settings[k]
             #blynk_vpin, repeat_sec, name, res="1280x720", usb_port=0, logger=None
             self.camera_devices.append(camera(blynk_vpin=curr_device["vpin"], repeat_sec=curr_device["repeat_sec"],
-                                              name=curr_device["name"], res=curr_device["res"], usb_port=curr_device["usb_port"], logger=self.logger))
-        self.logger.info("Initiated green wall named '" +
-                         name + "' on " + platform)
+                                              name=curr_device["name"], res=curr_device["res"], usb_port=curr_device["usb_port"]))
 
     def get_device_name(self, name):
         """returns a device object when you ask for the name"""
@@ -274,22 +203,3 @@ class greenwall:
         """returns the value of a device (0 or 1) when you ask for its vpin"""
         dev = self.get_device_vpin(vpin)
         return(dev.getValue())
-
-    def addTm(self, tm):
-        """adding a task-manager by weak-ref to the green-wall and all devices so that they can schedule tasks."""
-        self.logger.debug("Added Taskmanager to greenwall object.")
-        self.tm = weakref.ref(tm)
-        for dev in self.gpio_devices:
-            dev.addTm(tm)
-        for dev in self.camera_devices:
-            dev.addTm(tm)
-        
-
-
-    def addBlynk(self, blynk):
-        """adding a blynk object by weak-ref to the green-wall and all devices so that they can send infos to the app."""
-        self.blynk=weakref.ref(blynk)
-        for dev in self.gpio_devices:
-            dev.addBlynk(blynk)
-        for dev in self.camera_devices:
-            dev.addBlynk(blynk)
