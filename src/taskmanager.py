@@ -50,10 +50,11 @@ class task_manager:
     """ makes sure that tasks are being executed without blocking the main thread and without permanent checking while still allowing
     for external steering (e.g. via blynk-app)"""
 
-    def __init__(self, green_wall, blynk, logger=None, *args, **kwargs):
+    def __init__(self, green_wall, blynk, update_time_hours=1, logger=None, *args, **kwargs):
         # initialize task_list by parsing plans.json and run it.
         self.task_list = []
         self._next_plans = [] #just of internal use, tasks are kept here even if task has already his thread and is popped from task_list until task is really run.
+        self.update_time_hours=update_time_hours
         if logger is None:
             logging.basicConfig(filename='logs/task_manager.log', level=logging.INFO,
                                 format='[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
@@ -78,13 +79,16 @@ class task_manager:
         self._next_plans.insert(i, plan)
 
     def _refresh_next_plans(self):
+        # gets rid of tasks which should already have been run. No clue when that happens..
         while len(self._next_plans) > 0 and datetime.datetime.today() > self._next_plans[0]["exec_time"]:
            self._next_plans.pop(0)
 
-    def create_task_list(self, hours=12.0, logging_enabled=True):
+    def create_task_list(self, hours=None, logging_enabled=True):
         # updates the task-list for the next 12h including an update at the end of the cycle for itself.
         # the task-list contains all actions like starting and stopping pumps. It needs to be sorted, so that the first task
         # in the list is the next one to do. The last task is creating the task_list again (for the next 12h).
+        if hours is None:
+            hours=self.update_time_hours
         plan_time_start = datetime.datetime.today()
         plan_time_end = plan_time_start + datetime.timedelta(hours=hours)
         with open("settings/plans.json") as file_plans:
@@ -142,7 +146,8 @@ class task_manager:
         else:
             self.add_task(task(exec_time=plan_time_end, func=self.create_task_list,
                            name="Update Task List"))
-
+#TODO: Thread per plan + creating functions at execution of plan, using the taskmanagers API to transform plan to actions/tasks
+#TODO: Refactoring such that calculating plans and saving them in object are two distinct things: creating_plans calls calculating_plans
 
     def run(self):
         # search for task wich should be executed next, wrap it's function and execute

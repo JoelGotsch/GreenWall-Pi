@@ -53,7 +53,8 @@
             "vpin":7,
             "repeat_sec":240,
             "res":"1280x720",
-            "usb_port":0
+            "usb_port":0,
+			"device_name":"ARC International Camera"
         }
         
     }

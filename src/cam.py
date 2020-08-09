@@ -1,7 +1,7 @@
 
 # import picamera
 import json
-import os
+import os, time
 # import time
 import datetime
 from subprocess import call
@@ -41,7 +41,7 @@ class camera:
 
         self.cloudinary = cld
 
-    def take_picture(self, filename=""):
+    def take_picture(self, filename="", tries=5):
         # save as png
         if filename=="":
             fn = "./pics/"+datetime.datetime.today().strftime("%Y-%m-%d_%H-%M-%S")+".png"
@@ -50,8 +50,13 @@ class camera:
         call(["fswebcam", "-d", "/dev/video"+str(self.usb_port),
               "-r", self.res, "--no-banner", fn])
         #call(["fswebcam", "-d", "/dev/video"+str(0), "-r", "1280x720", "--no-banner", fn])
+        # fswebcam -d /dev/video0 -r 1280x720 --no-banner test.jpg
         if not os.path.exists(fn):
             self.logger.info("Taking picture failed "+ fn)
+            if tries > 1:
+                self.reset_camera()
+                self.take_picture(tries=tries-1)
+            self.logger.debug("All tries for resetting camera failed.")
             return(0)
         image_url=self._upload_picture(fn)
         self.logger.info("Took picture and uploaded. "+str(image_url))
@@ -84,6 +89,13 @@ class camera:
         urls=[uploaded_images[k]["url"] for k in ks]
 
         return(urls[:n])
+
+    def reset_camera(self):
+        self.logger.debug("Resetting all USB ports to reset camera..")
+        #see: https://github.com/mvp/uhubctl#raspberry-pi-4b for installation guideline
+        os.system("sudo bash ~/uhubctl/uhubctl -a cycle -p 1-4 -l 2")
+        # command not found!
+        time.sleep(5)
 
     def updateLastNURLs(self, n=5):
         urls=self._getLastUrlsN(n=n)

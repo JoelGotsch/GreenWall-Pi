@@ -18,16 +18,16 @@ class BlynkLogStream:
         
 
         self.tm().add_task(task(exec_time=datetime.datetime.today(), func=write_to_blynk,
-                           name="send log to blynk"))
+                           name="send log to blynk (write)"))
         self.last_message = message
     
     def flush(self):
         def write_to_blynk():
             self.blynk().virtual_write(self.vpin, "")
 
-
-        self.tm().add_task(task(exec_time=datetime.datetime.today(), func=write_to_blynk,
-                           name="send log to blynk"))
+        pass
+        # self.tm().add_task(task(exec_time=datetime.datetime.today(), func=write_to_blynk,
+        #                    name="send log to blynk (flush)"))
 
 
 
