@@ -58,14 +58,18 @@ def initializeLogger(filename='logs/app.log', log_level=logging.DEBUG, logger_na
     logger.addHandler(ch)
     return(logger)
 
-def add_plan(self, plan_name, plan_datetime, next_plans_list=[]):
+def add_plan(plan_name, plan_datetime, next_plans_list=[]):
 # add task to _next_plans with appropriate position (according to exec_time)
     plan = {"plan_name": plan_name, "exec_time": plan_datetime}
     i = 0
     if len(next_plans_list) == 0:
         next_plans_list.insert(i, plan)
-        return()
+        return(next_plans_list)
     while i < len(next_plans_list) and plan_datetime > next_plans_list[i]["exec_time"]:
         i += 1
     next_plans_list.insert(i, plan)
+    return(next_plans_list)
 
+# t1={"Plan":"test"}
+# t2=[]
+# t2.insert(0,t1)

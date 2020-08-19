@@ -5,18 +5,17 @@ import datetime
 import sys
 import weakref
 import threading
+import re
 
 from collections import OrderedDict
 
 try:
     from src.misc import calc_last_runtime
     from src.blynklib import Blynk
-    from src.taskmanager import task_manager, task
     from src.cam import camera
 except ModuleNotFoundError:
     from misc import calc_last_runtime
     from blynklib import Blynk
-    from taskmanager import task_manager, task
     from cam import camera
 
 
@@ -82,14 +81,15 @@ class device:
         #  if action = turn_on, then value = 1. But if duration is given, then flip value (1-value)
         # (1); contains the whole action, (is_active, description, weekdays, start_time,..)
         filtered_plans = OrderedDict()
-        for plan in schedule_dict:
-            if any([self.name in devices for devices in plans_dict[plan]["actions"]]):
+        for plan in schedule_dict.keys():
+            if any([self.name in plans_dict[plan]["actions"][ac]["devices"] for ac in plans_dict[plan]["actions"]]):
                 filtered_plans[plan] = plans_dict[plan]
         # (2)
         last_plan = OrderedDict(last_time=datetime.datetime.min)
-        for ac in filtered_plans:
+        for ac in filtered_plans.keys():
+            #TODO: if repeat_s is given, include it in calculation
             filtered_plans[ac]["last_time"] = calc_last_runtime(
-                wdays=filtered_plans[ac]["weekdays"], start_time=filtered_plans[ac]["start_time"])
+                wdays=schedule_dict[ac]["weekdays"], start_time=schedule_dict[ac]["start_time"])
             if filtered_plans[ac]["last_time"] > last_plan["last_time"]:
                 last_plan = filtered_plans[ac]
 
@@ -187,6 +187,9 @@ class greenwall:
         for dev in self.gpio_devices:
             if dev.name == name:
                 return(dev)
+        for dev in self.camera_devices:
+            if dev.name == name:
+                return(dev)
         raise KeyError
 
     def get_device_vpin(self, vpin):
@@ -198,6 +201,17 @@ class greenwall:
             if dev.vpin == vpin:
                 return(dev)
         raise KeyError
+
+    def get_device_regex(self, regex_str):
+        """"returns a list with devices which names match the regex_str"""
+        dev_list = []
+        for dev in self.gpio_devices:
+            if re.search(regex_str, dev.name):
+                dev_list.append(dev)
+        for dev in self.camera_devices:
+            if re.search(regex_str, dev.name):
+                dev_list.append(dev)
+        return(dev_list)
 
     def getValue_vpin(self, vpin):
         """returns the value of a device (0 or 1) when you ask for its vpin"""

@@ -10,10 +10,10 @@ import weakref
 # import requests
 import cloudinary
 from cloudinary.uploader import upload
-try:
-    from src.taskmanager import task
-except ModuleNotFoundError:
-    from taskmanager import task
+# try:
+#     from src.taskmanager import task
+# except ModuleNotFoundError:
+#     from taskmanager import task
 
 class CameraException(Exception):
     def __init__(self, *args, **kwargs):

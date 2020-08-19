@@ -1,8 +1,5 @@
 import weakref, json, logging, datetime
-try:
-    from src.taskmanager import task
-except ModuleNotFoundError:
-    from taskmanager import task
+import threading
 
 class BlynkLogStream:
     """needs to implement flush and write methods"""
@@ -10,24 +7,19 @@ class BlynkLogStream:
         self.blynk = weakref.ref(blynk)
         self.tm = weakref.ref(tm)
         self.vpin = vpin
-        self.last_message = ""
+        # self.last_message = ""
     
     def write(self, message):
         def write_to_blynk():
-            self.blynk().virtual_write(self.vpin, self.last_message + "\n" + message)
-        
-
-        self.tm().add_task(task(exec_time=datetime.datetime.today(), func=write_to_blynk,
-                           name="send log to blynk (write)"))
-        self.last_message = message
+            self.blynk().virtual_write(self.vpin, message)
+        threading.Timer(0, write_to_blynk).start()
+        # self.last_message = message
     
     def flush(self):
-        def write_to_blynk():
-            self.blynk().virtual_write(self.vpin, "")
+        # def write_to_blynk():
+        #     self.blynk().virtual_write(self.vpin, "")
 
         pass
-        # self.tm().add_task(task(exec_time=datetime.datetime.today(), func=write_to_blynk,
-        #                    name="send log to blynk (flush)"))
 
 
 

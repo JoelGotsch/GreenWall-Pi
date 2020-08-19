@@ -13,7 +13,7 @@
             "name":"big_pump",
             "gpio_pin":15,
             "vpin":2,
-            "min_pause":600
+            "min_pause":60
         },
         "sp1": 
         {
@@ -48,7 +48,7 @@
     {
         "cam_1":
         {
-            "name":"camera_1",
+            "name":"cam_1",
             "gpio_pin":"USB",
             "vpin":7,
             "repeat_sec":240,

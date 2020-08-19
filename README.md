@@ -4,3 +4,5 @@ Everything is syncronized with a blynk app so that I can control everything remo
 
 ## How-to:
 - Install usbhc on RaspberryPi: https://github.com/mvp/uhubctl#raspberry-pi-4b
+- ""sudo crontab -e -u root"": ""@reboot sudo /home/pi/GreenWall-Pi/venv/bin/python3 /home/pi/GreenWall-Pi/app.py &""
+- ""sudo chmod a+x app.py""
