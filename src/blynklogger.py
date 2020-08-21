@@ -3,9 +3,8 @@ import threading
 
 class BlynkLogStream:
     """needs to implement flush and write methods"""
-    def __init__(self, blynk, tm, vpin, *args, **kwargs):
+    def __init__(self, blynk, vpin, *args, **kwargs):
         self.blynk = weakref.ref(blynk)
-        self.tm = weakref.ref(tm)
         self.vpin = vpin
         # self.last_message = ""
     
@@ -23,14 +22,14 @@ class BlynkLogStream:
 
 
 
-def attachBlynkLogger(logger, blynk, tm):
+def attachBlynkLogger(logger, blynk):
     with open("settings/blynk_settings.json") as file_settings:
         Blynk_settings = dict(json.load(file_settings))
     logger_settings = Blynk_settings["logger"]
     loglevel = logging.INFO
     if logger_settings["log-level"]=="DEBUG": 
         loglevel = logging.DEBUG
-    stream_object = BlynkLogStream(blynk = blynk, tm = tm, vpin = logger_settings["vpin"])
+    stream_object = BlynkLogStream(blynk = blynk, vpin = logger_settings["vpin"])
     sh = logging.StreamHandler(stream=stream_object)
     fmt = logging.Formatter('%(asctime)s %(message)s', datefmt="%H:%M:%S")
     sh.setFormatter(fmt)

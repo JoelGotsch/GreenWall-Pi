@@ -70,6 +70,10 @@ def add_plan(plan_name, plan_datetime, next_plans_list=[]):
     next_plans_list.insert(i, plan)
     return(next_plans_list)
 
+def get_schedule_list(schedule_dict, plan_name):
+    """returns list of schedules which are defined for given plan."""
+    return([scheduel_name for scheduel_name in schedule_dict.keys() if schedule_dict[scheduel_name]["plan"]==plan_name])
+
 # t1={"Plan":"test"}
 # t2=[]
 # t2.insert(0,t1)

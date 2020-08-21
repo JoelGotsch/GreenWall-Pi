@@ -25,8 +25,9 @@ if __name__ == "__main__":
     blynk = initializeBlynk()
     #sending logging messages to blynk via vpin set in blynk_settings for logger
     tm = task_manager(green_wall=gw, logger=logger, blynk = blynk)
-    logger=attachBlynkLogger(logger, blynk, tm)
+    logger=attachBlynkLogger(logger, blynk)
     threading.Timer(0, function=run_blynk_loop(blynk)).start()
+    logger.info("GreenWall-Pi started and initialized.")
     sleep_time=1
     while True:
         tm.run(cycle_time_s=sleep_time)

@@ -66,13 +66,14 @@ class task_manager:
             schedule_dict = OrderedDict(json.load(file_schedule))
         self.logger.debug("Calculating schedule...")
 
-        for plan_k in schedule_dict.keys():
+        for schedule_name in schedule_dict.keys():
+            plan_k = schedule_dict[schedule_name]["plan"]
             if plan_k not in plans_dict.keys():
                 self.logger.exception(
                     "Could not find plan '" + str(plan_k) + "' in plans.json")
                 continue
             plan = plans_dict[plan_k]
-            schedule = schedule_dict[plan_k]
+            schedule = schedule_dict[schedule_name]
 
             if "repeat_s" in schedule.keys():
                 # get last time execution and add repeat_s for ceiling(now-plan_time/repeat_s) times
@@ -206,7 +207,7 @@ class task_manager:
         except:
             self.logger.exception(
                 "Could not find device vpin="+str(vpin) + " , name="+name)
-        return(dev.getValue)
+        return(dev.getValue())
 
     def set_value_device_vpin(self, vpin, val=-1, *args, **kwargs):
         self.logger.debug("Set value to " + str(val) + " on " +

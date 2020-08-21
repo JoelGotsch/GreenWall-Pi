@@ -22,10 +22,11 @@ except ModuleNotFoundError:
 class device:
     """A class for GPIO devices which handles turning them on and off."""
 
-    def __init__(self, name, gpiopin, blynk_vpin, min_pause, *args, **kwargs):
+    def __init__(self, name, gpiopin, blynk_vpin, on_value, min_pause, *args, **kwargs):
         self.name = name
         self.gpiopin = gpiopin
         self.vpin = blynk_vpin
+        self.on_value = on_value
         try:
             self.gpio_obj = gpiozero.LED(gpiopin)
         except gpiozero.exc.GPIOPinInUse:
@@ -52,7 +53,10 @@ class device:
         if datetime.datetime.today() <= self.last_date_turned_on + datetime.timedelta(seconds=self.min_pause):
             raise TimeoutError("Tried to turn on device '" + self.name + "' before min_pause= " +
                                str(self.min_pause) + " seconds since the last turn on event.")
-        self.gpio_obj.on()
+        if self.on_value == 0:
+            self.gpio_obj.off()
+        else:
+            self.gpio_obj.on()
         self.last_date_turned_on = datetime.datetime.today()
         # write to last_turned_on
         with open("settings/last_turned_on.json") as file_settings:
@@ -63,10 +67,17 @@ class device:
         return(1)
 
     def turn_off(self):
-        self.gpio_obj.off()
+        if self.on_value == 0:
+            self.gpio_obj.on()
+        else:
+            self.gpio_obj.off()
 
     def getValue(self):
-        return(self.gpio_obj.value)
+        """returns 1 if device is on and 0 otherwise."""
+        if self.on_value == 0:
+            return(1- self.gpio_obj.value)
+        else:
+            return(self.gpio_obj.value)
 
     def get_targetValue(self):
         """Returns the state in which the device should be at the current time, derived from last set value in plans.json for device with this name.
@@ -81,15 +92,16 @@ class device:
         #  if action = turn_on, then value = 1. But if duration is given, then flip value (1-value)
         # (1); contains the whole action, (is_active, description, weekdays, start_time,..)
         filtered_plans = OrderedDict()
-        for plan in schedule_dict.keys():
+        for schedule_name in schedule_dict.keys():
+            plan = schedule_dict[schedule_name]["plan"]
             if any([self.name in plans_dict[plan]["actions"][ac]["devices"] for ac in plans_dict[plan]["actions"]]):
-                filtered_plans[plan] = plans_dict[plan]
+                filtered_plans[schedule_name] = plans_dict[plan]
         # (2)
         last_plan = OrderedDict(last_time=datetime.datetime.min)
         for ac in filtered_plans.keys():
             #TODO: if repeat_s is given, include it in calculation
             filtered_plans[ac]["last_time"] = calc_last_runtime(
-                wdays=schedule_dict[ac]["weekdays"], start_time=schedule_dict[ac]["start_time"])
+                    wdays=schedule_dict[ac]["weekdays"], start_time=schedule_dict[ac]["start_time"])
             if filtered_plans[ac]["last_time"] > last_plan["last_time"]:
                 last_plan = filtered_plans[ac]
 
@@ -146,6 +158,8 @@ class device:
             value = 1-value
         if last_action_had_duration:
             value = 1-value
+        #switching the state with respect to what the normal "on-value" is.
+        value = 1-(value^self.on_value)
         return(value)
 
 
@@ -165,7 +179,7 @@ class greenwall:
         for k in gpio_settings.keys():
             curr_device = gpio_settings[k]
             self.gpio_devices.append(device(name=curr_device["name"], gpiopin=curr_device["gpio_pin"],
-                                            blynk_vpin=curr_device["vpin"], min_pause=curr_device["min_pause"]))
+                                            blynk_vpin=curr_device["vpin"], on_value=curr_device["on_value"], min_pause=curr_device["min_pause"]))
         # check if all devices are in the right status; according to plans.json and send current state to blynk
         for dev in self.gpio_devices:
             tv = dev.get_targetValue()

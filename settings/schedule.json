@@ -1,21 +1,31 @@
 {
     "pump_all_morning":
     {
+        "plan": "pump_all_morning",
         "weekdays":[0,1,2,3,4,5,6],
         "start_time":"11:00"
     },
+    "pump_all_morning_2":
+    {
+        "plan": "pump_all_morning",
+        "weekdays":[0,1,2,3,4,5,6],
+        "start_time":"11:10"
+    },
     "light_on":
     {
+        "plan": "light_on",
         "weekdays":[0,1,2,3,4,5,6],
         "start_time":"08:00"
     },
     "light_off":
     {
+        "plan": "light_off",
         "weekdays":[0,1,2,3,4,5,6],
         "start_time":"21:00"
     },
     "upload_new_photo":
     {
+        "plan": "upload_new_photo",
         "weekdays":[0,1,2,3,4,5,6],
         "start_time":"21:00",
         "repeat_s":240

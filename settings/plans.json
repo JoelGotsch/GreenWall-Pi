@@ -1,23 +1,7 @@
 {
-    "pump_all_morning":
+    "pump_all":
     {
         "description":"Pumps at 11am for 10 seconds with the big pump, then 15 seconds with all four small pumps.",
-        "actions":{
-            "turn_big_pump_on":{
-                "task":"turn_on",
-                "devices":["big_pump"],
-                "duration":10
-            },
-            "turn_small_pumps_on":{
-                "task":"turn_on",
-                "devices":["small_pump1", "small_pump2", "small_pump3", "small_pump4"],
-                "duration":15
-            }
-        }
-    },
-    "pump_all_evening":
-    {
-        "description":"Pumps at 8pm for 10 seconds with the big pump, then 15 seconds with all four small pumps.",
         "actions":{
             "turn_big_pump_on":{
                 "task":"turn_on",
