@@ -13,6 +13,7 @@ import math
 from src.misc import get_duration, next_date_wday, add_plan, calc_last_runtime
 from src.cam import CameraException
 
+
 class task_manager:
     """ makes sure that tasks are being executed without blocking the main thread and without permanent checking while still allowing
     for external steering (e.g. via blynk-app)"""
@@ -58,7 +59,7 @@ class task_manager:
         # calculate which plans should be run next, checks in executed_plans of plans are already in execution and dismisses them.
         next_plans_list = []
         # to not add the plan which is currently executing
-        plan_time_start = datetime.datetime.today() # + datetime.timedelta(seconds=2)
+        plan_time_start = datetime.datetime.today()  # + datetime.timedelta(seconds=2)
         plan_time_end = plan_time_start + datetime.timedelta(hours=hours)
         with open("settings/plans.json") as file_plans:
             plans_dict = OrderedDict(json.load(file_plans))
@@ -83,7 +84,8 @@ class task_manager:
                     (plan_time_start-prev_exec_time).seconds/schedule["repeat_s"]))
                 # check if this plan was already executed. If so, calc next one.
                 if self.plan_already_executed(plan_k, next_exec_time):
-                    next_exec_time += datetime.timedelta(seconds=schedule["repeat_s"])
+                    next_exec_time += datetime.timedelta(
+                        seconds=schedule["repeat_s"])
                 next_plans_list = add_plan(plan_name=plan_k, plan_datetime=next_exec_time,
                                            next_plans_list=next_plans_list)
             else:
@@ -102,7 +104,7 @@ class task_manager:
                 for plan_time in plan_times:
                     if not self.plan_already_executed(plan_k, plan_time):
                         next_plans_list = add_plan(plan_name=plan_k, plan_datetime=plan_time,
-                                                next_plans_list=next_plans_list)
+                                                   next_plans_list=next_plans_list)
         next_plans_list = add_plan(plan_datetime=plan_time_end,
                                    plan_name="refresh_schedule", next_plans_list=next_plans_list)
         self.logger.debug("Schedule calculated...")
@@ -158,19 +160,21 @@ class task_manager:
         # search for task wich should be executed next, wrap it's function and execute
         if self.schedule_change_date != os.path.getmtime("settings/schedule.json"):
             self.refresh_schedule()
-            self.schedule_change_date = os.path.getmtime("settings/schedule.json")
+            self.schedule_change_date = os.path.getmtime(
+                "settings/schedule.json")
             return()
         if self.plan_schedule[0]["exec_time"] < datetime.datetime.today() + datetime.timedelta(seconds=cycle_time_s):
             plan = self.plan_schedule.pop(0)
             #TODO: Pumping won't start, taking picture works
-            delta_t = (plan["exec_time"]-datetime.datetime.today()).total_seconds()
-            self.logger.info("Executing plan " + plan["plan_name"] + " in " + str(delta_t) + " seconds.")
-            threading.Timer(delta_t,function = self.execute_plan, args=[plan["plan_name"]]).start()
+            delta_t = (plan["exec_time"] -
+                       datetime.datetime.today()).total_seconds()
+            self.logger.info(
+                "Executing plan " + plan["plan_name"] + " in " + str(delta_t) + " seconds.")
+            threading.Timer(delta_t, function=self.execute_plan,
+                            args=[plan["plan_name"]]).start()
             self.executed_plans.insert(0, plan)
             #TODO: trim executed_plans to only have last time a plan was executed. Don't need to store more.
             self.refresh_schedule()
-
-
 
     def send_next_plans(self):
         # sends the next plans as text to blynk. only the ones which differ from self.sent_plans
@@ -190,8 +194,10 @@ class task_manager:
                 self.sent_plans[i] = send_str
                 sending = True
             if sending is True:
-                self.logger.debug("Send plan " + send_str + " to vpin " + str(vpin))
-                threading.Timer(0, self.blynk.virtual_write, args=[vpin, send_str]).start()
+                self.logger.debug("Send plan " + send_str +
+                                  " to vpin " + str(vpin))
+                threading.Timer(0, self.blynk.virtual_write,
+                                args=[vpin, send_str]).start()
 
 ##### here starts the API implementation of functions to control the green_wall and blynk ################
     def get_value_device(self, vpin=None, name="", *args, **kwargs):
@@ -237,7 +243,8 @@ class task_manager:
         # check if light is on, otherwise don't take picture:
         dev_light = self.green_wall.get_device_regex("light")
         if any([dev.getValue() == 0 for dev in dev_light]):
-            self.logger.debug("Light is turned off, therefore no picture is taken.")
+            self.logger.debug(
+                "Light is turned off, therefore no picture is taken.")
             return(0)
         # get camera object from device list
         self.logger.debug("Taking picture with cam " + str(cam_name))
@@ -251,8 +258,10 @@ class task_manager:
             self.logger.error(
                 "Could not take picture. Tried to reset camera, but failed.")
             return(0)
-        threading.Timer(0, self.blynk.set_property, args=[cam.vpin, "urls", image_url]).start()
-        threading.Timer(0, self.blynk.virtual_write, args=[cam.vpin, 1]).start()
+        threading.Timer(0, self.blynk.set_property, args=[
+                        cam.vpin, "urls", image_url]).start()
+        threading.Timer(0, self.blynk.virtual_write,
+                        args=[cam.vpin, 1]).start()
         # self.blynk.set_property(cam.vpin, "urls", image_url)
         # self.blynk.virtual_write(cam.vpin, 1)  # shows the newest picture
         return(1)
@@ -267,7 +276,8 @@ class task_manager:
         # send value to blynk:
         val = dev.getValue()
         virt_pin = dev.vpin
-        threading.Timer(0, self.blynk.virtual_write, args=[virt_pin, val]).start()
+        threading.Timer(0, self.blynk.virtual_write,
+                        args=[virt_pin, val]).start()
         # self.blynk.virtual_write(virt_pin, val)
 
     def turn_off(self, device):
@@ -280,5 +290,6 @@ class task_manager:
         # send value to blynk:
         val = dev.getValue()
         virt_pin = dev.vpin
-        threading.Timer(0, self.blynk.virtual_write, args=[virt_pin, val]).start()
+        threading.Timer(0, self.blynk.virtual_write,
+                        args=[virt_pin, val]).start()
         # self.blynk.virtual_write(virt_pin, val)

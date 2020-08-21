@@ -81,6 +81,7 @@ class device:
 
     def get_targetValue(self):
         """Returns the state in which the device should be at the current time, derived from last set value in plans.json for device with this name.
+        1 stands for on, 0 for off.
         Returns None if Dive is not described in plans.json"""
         with open("settings/plans.json") as file_plans:
             plans_dict = OrderedDict(json.load(file_plans))
@@ -158,8 +159,8 @@ class device:
             value = 1-value
         if last_action_had_duration:
             value = 1-value
-        #switching the state with respect to what the normal "on-value" is.
-        value = 1-(value^self.on_value)
+        #switching the state with respect to what the normal "on-value" is. Not needed!
+        # value = value^self.on_value
         return(value)
 
 

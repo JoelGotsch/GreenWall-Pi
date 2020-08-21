@@ -1,14 +1,14 @@
 {
     "pump_all_morning":
     {
-        "plan": "pump_all_morning",
-        "weekdays":[0,1,2,3,4,5,6],
+        "plan": "pump_all",
+        "weekdays":[0,2,4,6],
         "start_time":"11:00"
     },
     "pump_all_morning_2":
     {
-        "plan": "pump_all_morning",
-        "weekdays":[0,1,2,3,4,5,6],
+        "plan": "pump_all",
+        "weekdays":[0,2,4,6],
         "start_time":"11:10"
     },
     "light_on":
@@ -27,7 +27,7 @@
     {
         "plan": "upload_new_photo",
         "weekdays":[0,1,2,3,4,5,6],
-        "start_time":"21:00",
+        "start_time":"00:00",
         "repeat_s":240
     }
 }
